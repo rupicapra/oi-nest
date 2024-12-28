@@ -1,6 +1,6 @@
 {
   "name": "test-app",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "scripts": {
     "start:dev": "nest start --watch --debug",
     "build": "tsc"
@@ -10,7 +10,7 @@
     "@nestjs/core": "^10.4.15",
     "@nestjs/platform-express": "^10.4.15",
     "@nestjs/swagger": "^8.1.0",
-    "@rupicapra/oi-nest": "*",
+    "@rupicapra/oi-nest": "^0.0.1",
     "source-map-support": "^0.5.21",
     "swagger-ui-express": "^5.0.1"
   }
