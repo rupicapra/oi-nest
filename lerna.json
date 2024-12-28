@@ -1,0 +1,15 @@
+{
+  "packages": [
+    "packages/*",
+    "apps/*"
+  ],
+  "command": {
+    "publish": {
+      "ignoreChanges": ["apps/**"]
+    },
+    "changed": {
+      "ignoreChanges": ["apps/**"]
+    }
+  },
+  "version": "independent"
+}

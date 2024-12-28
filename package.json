@@ -1,0 +1,17 @@
+{
+  "scripts": {
+    "build": "lerna run build",
+    "start:dev": "lerna run --scope @rupicapra/oi-nest build --stream && lerna run --scope test-app start:dev"
+  },
+  "dependencies": {
+    "lerna": "^8.1.9",
+    "tsup": "^8.3.5"
+  },
+  "workspaces": [
+    "./packages/*",
+    "./apps/*"
+  ],
+  "devDependencies": {
+    "@nestjs/cli": "^10.4.9"
+  }
+}
