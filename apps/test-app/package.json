@@ -2,7 +2,7 @@
   "name": "test-app",
   "version": "0.0.3",
   "scripts": {
-    "start:dev": "nest start --watch --debug",
+    "start:dev": "NODE_OPTIONS='--experimental-require-module' nest start --watch --debug",
     "build": "tsc"
   },
   "private": true,
