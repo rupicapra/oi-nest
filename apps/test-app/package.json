@@ -3,7 +3,7 @@
   "version": "0.0.4",
   "scripts": {
     "start:dev": "NODE_OPTIONS='--experimental-require-module' nest start --watch --debug",
-    "build": "tsc"
+    "build": "tsup src/main.ts --format cjs"
   },
   "private": true,
   "dependencies": {
@@ -12,6 +12,9 @@
     "@nestjs/platform-express": "^10.4.15",
     "@nestjs/swagger": "^8.1.0",
     "@rupicapra/oi-nest": "^0.0.4",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "nest-winston": "^1.9.7",
     "source-map-support": "^0.5.21",
     "swagger-ui-express": "^5.0.1"
   }

@@ -4,6 +4,8 @@
     "start:dev": "lerna run --scope @rupicapra/oi-nest build --stream && lerna run --scope test-app start:dev"
   },
   "dependencies": {
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
     "lerna": "^8.1.9",
     "tsup": "^8.3.5"
   },

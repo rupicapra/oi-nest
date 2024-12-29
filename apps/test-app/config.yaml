@@ -1,0 +1,65 @@
+wallets:
+  eip155:
+    default:
+      file: wallet-default.json
+      password: test
+    alice:
+      file: wallet-alice.json
+      password: test
+database:
+  namespace: openibex
+  path: ./data/
+  address: /orbitdb/zdpuB3ZiYz2Gpj1LiK3HLT3BVRC5j5s4qtLUdmkBSkzPHns99
+plugins:
+  openibex:
+    chain: null
+    ethereum:
+      wallets:
+        default:
+          file: wallets/eip155/default.json
+          password: test
+        alice:
+          file: wallets/eip155/alice.json
+          password: test
+      networks:
+        mainnet:
+          chainId: 1
+          plugins:
+            etherscan:
+              className: EtherscanPlugin
+              params:
+                url: https://exp.example.com
+          providers:
+            default:
+              className: DefaultProvider
+              settings:
+                rateLimit: 3
+                batchSize: 5000
+              params:
+                endpoint: https://example.com/<someKey>
+            rpc:
+              className: RpcProvider
+              params:
+                endpoint: https://example.com/<someKey>
+        testnet:
+          chainId: 10000
+        hardhat:
+          chainId: 31337
+          providers:
+            default:
+              className: DefaultProvider
+              settings:
+                rateLimit: 3
+                batchSize: 5000
+              params:
+                endpoint: http://127.0.0.1:8545/
+helia:
+  libp2p:
+    mode: standalone
+  blockstore:
+    plugin: level
+    params:
+      path: ./data/ipfs
+  datastore:
+    plugin: memory
+    params: {}
