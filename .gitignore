@@ -1,4 +1,4 @@
-apps/test-app/data/*
+apps/test-app/oi_data/*
 
 # Logs
 logs

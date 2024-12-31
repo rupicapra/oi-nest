@@ -8,18 +8,17 @@ wallets:
       password: test
 database:
   namespace: openibex
-  path: ./data/
-  address: /orbitdb/zdpuB3ZiYz2Gpj1LiK3HLT3BVRC5j5s4qtLUdmkBSkzPHns99
+  path: ./oi_data/
 plugins:
   openibex:
     chain: null
     ethereum:
       wallets:
         default:
-          file: wallets/eip155/default.json
+          file: ./oi_data/wallets/eip155/default.json
           password: test
         alice:
-          file: wallets/eip155/alice.json
+          file: ./oi_data/wallets/eip155/alice.json
           password: test
       networks:
         mainnet:
@@ -59,7 +58,7 @@ helia:
   blockstore:
     plugin: level
     params:
-      path: ./data/ipfs
+      path: ./oi_data/ipfs
   datastore:
     plugin: memory
     params: {}

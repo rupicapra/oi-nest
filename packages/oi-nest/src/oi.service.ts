@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { ProxyLogger } from './ProxyLogger';
-import { promises as fsPromises } from 'fs';
+import { promises as fsPromises, readFileSync, writeFileSync } from 'fs';
 import { AssetType} from 'caip';
 import JSONbig from 'json-bigint';
 import {OiChain} from '@openibex/chain';
@@ -17,16 +17,21 @@ import '@openibex/ethereum';
 
 import { ExecuteSmartContractDto } from './dto/execute-function.dto';
 
-
+// setup-directory needs to contain at least a config.yaml
+// TODO OI_BOOTSTRAP ... path do setup directory
+// TODO OI_DATA_DIR ... writeable persistent data directory
 // TODO Docs Environment-Variables: OI_CONFIG_FILE ... path to config
+
 
 @Injectable()
 export class OiService implements OnModuleInit {
   private logger: ProxyLogger;
   private core: OiCore;
+  private data_dir: string = path.resolve(process.env.OI_DATA_DIR || './oi_data/');
+  private config_path: string = path.resolve(process.env.OI_CONFIG_FILE || path.join(this.data_dir, 'config.yaml'));
 
   private _getConfigPath(): string {
-    return process.env.OI_CONFIG_FILE || path.resolve('config.yaml');
+    return this.config_path;
   }
 
   loadConfig(): OiConfig {
@@ -60,6 +65,12 @@ export class OiService implements OnModuleInit {
     if(!this.checkNodeEnv()) {
       throw new Error("Incompatible runtime detected.")
     }
+
+    if(!this.data_dir) {
+      throw new Error("OS_DATA_DIR environment variable needs to be set.")
+    }
+
+    this.boostrap();
   }
 
   async onModuleInit(): Promise<void> {
@@ -123,8 +134,7 @@ export class OiService implements OnModuleInit {
     
     if(!this.core.isInitialized()) {
       throw new Error("OpenIbex core loaded but not initialized for unknown reasons. Happy Debugging.")
-    }
-    
+    }    
   }
 
 
@@ -144,9 +154,61 @@ export class OiService implements OnModuleInit {
     }
   }
 
+  canWriteDir(dirname: string): boolean {
+    try {
+      fs.accessSync(dirname, fs.constants.W_OK);
+      return true;
+    } catch(e) {
+      return false;
+    }
+  }
+
+  nrFilesInDir(dirname): number {
+    return fs.readdirSync(dirname, {recursive:true}).length;
+
+  }
+  isDirEmpty(dirname) {
+    return this.nrFilesInDir(dirname) === 0;
+  }
+
+  boostrap() {
+    const bootstrapFile = path.join(this.data_dir, 'bootstrapped.date');
+    
+    this.logger.info(`Starting from data directory ${this.data_dir}`);
+
+    // On each startup, verify I can still write the data directory
+    if(!this.canWriteDir(this.data_dir)) {
+      throw new Error(`Cannot write data directory: ${this.data_dir}`);
+    }
+
+    if(fs.existsSync(bootstrapFile)) {
+      this.logger.info(`Bootstraping was done ${readFileSync(bootstrapFile, { encoding: 'utf-8' })})`);
+      return;
+    }    
+
+    // Check if directory is empty
+    if(!this.isDirEmpty(this.data_dir)) {
+      throw new Error(`Data dir has no bootstrap file, but is also non-empty: ${this.data_dir}`);
+    }
+
+    const bootstrap_dir = path.resolve(process.env.OS_BOOTSTRAP_DIR || './oi_init/');
+
+    // Ok, so we have a writable empty directory, check what we shall write...
+    if(this.isDirEmpty(bootstrap_dir)) {
+      throw new Error(`OS_BOOTSTRAP_DIR is empty: ${process.env.OS_BOOTSTRAP_DIR}`);
+    }
+
+    this.logger.info(`Bootstrap: Copy files from ${bootstrap_dir} to ${this.data_dir}`);
+    fs.cpSync(bootstrap_dir, this.data_dir, {recursive:true});
+    this.logger.info(`Copied ${this.nrFilesInDir(this.data_dir)} files and/or directories`);
+    
+    // Create bootstrap file
+    writeFileSync(bootstrapFile, new Date().toISOString(), { encoding: 'utf-8' });
+  }
 
   async initializeOi(): Promise<void> {
     this.logger.info("Initializing OpenIbex - this method can only run once.")
+
 
     const config = this.loadConfig();
 
