@@ -1,6 +1,6 @@
 {
   "name": "test-app",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "scripts": {
     "start:dev": "NODE_OPTIONS='--experimental-require-module' nest start --watch --debug",
     "build": "tsup src/main.ts --format cjs"
@@ -11,7 +11,7 @@
     "@nestjs/core": "^10.4.15",
     "@nestjs/platform-express": "^10.4.15",
     "@nestjs/swagger": "^8.1.0",
-    "@rupicapra/oi-nest": "^0.0.4",
+    "@rupicapra/oi-nest": "^0.0.5",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "nest-winston": "^1.9.7",
