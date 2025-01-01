@@ -1,8 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsBoolean, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
 
-console.log('Processing ExecuteSmartContractDto');
-
 export class ExecuteSmartContractOptions {
   
   @ApiProperty({

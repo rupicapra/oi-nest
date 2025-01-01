@@ -16,6 +16,8 @@ import '@openibex/chain';
 import '@openibex/ethereum';
 
 import { ExecuteSmartContractDto } from './dto/execute-function.dto';
+import { GenerateKeystoreDto } from './dto/generate-keystore.dto';
+import { Wallet } from 'ethers';
 
 // setup-directory needs to contain at least a config.yaml
 // TODO OI_BOOTSTRAP ... path do setup directory
@@ -225,8 +227,12 @@ export class OiService implements OnModuleInit {
     config.database.address = address;
 
     await this.writeConfig(config);     
+  }
 
-   
+  async generateKeystore(data: GenerateKeystoreDto) {
+    const wallet = new Wallet(data.private_key);
+    const keystore = wallet.encrypt(data.password);
+    return keystore;
   }
 
 

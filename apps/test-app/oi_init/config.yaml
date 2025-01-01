@@ -1,11 +1,3 @@
-wallets:
-  eip155:
-    default:
-      file: wallet-default.json
-      password: test
-    alice:
-      file: wallet-alice.json
-      password: test
 database:
   namespace: openibex
   path: ./oi_data/
@@ -20,6 +12,9 @@ plugins:
         alice:
           file: ./oi_data/wallets/eip155/alice.json
           password: test
+        bob:
+          file: ./oi_data/wallets/eip155/bob.json
+          password: supersecret
       networks:
         mainnet:
           chainId: 1
