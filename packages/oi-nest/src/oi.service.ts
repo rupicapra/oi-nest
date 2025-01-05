@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { getOiCore, initApp, OiConfig, OiCore } from '@openibex/core';
 import semver from 'semver';
 import * as path from 'path';
@@ -14,10 +14,15 @@ import {OiChain} from '@openibex/chain';
 // This is paramount for the plugins-system
 import '@openibex/chain';
 import '@openibex/ethereum';
+import './erc2771';
 
 import { ExecuteSmartContractDto } from './dto/execute-function.dto';
 import { GenerateKeystoreDto } from './dto/generate-keystore.dto';
-import { Wallet } from 'ethers';
+import { HDNodeWallet, Wallet } from 'ethers';
+import { ExecuteMetaDto } from './dto/execute-meta.dto';
+import { VerifyKeystoreDto } from './dto/verify-keystore.dto';
+import { JsonKeystoreDto } from './dto/jsonKeystore.dto';
+import { Erc2771Api } from './erc2771/api';
 
 // setup-directory needs to contain at least a config.yaml
 // TODO OI_BOOTSTRAP ... path do setup directory
@@ -235,7 +240,6 @@ export class OiService implements OnModuleInit {
     return keystore;
   }
 
-
   // actual endpoints
   async execute(data: ExecuteSmartContractDto): Promise<Object> {
     this.logger.info(`Executing function call with: ${data.artifact}`);
@@ -250,6 +254,46 @@ export class OiService implements OnModuleInit {
     const returnValue = await api.execute(data.function_name, data.args.join(','))
     this.logger.info(`Calling function '${data.function_name}' returns ${returnValue}`);
     return JSONbig.stringify({"return": returnValue});
+  }
+
+  async executeMeta(data: ExecuteMetaDto): Promise<Object> {
+
+    const assetArtifact = new AssetType(data.artifact);
+
+    const chain: OiChain = this.core.getService('openibex.chain', 'chain') as unknown as OiChain;
+    const api = chain.contract(assetArtifact).getAPI();
+
+    const invokedContract = await api.getRawContract();
+    const signerWallet = await this.walletFromKeystore(data.meta.keystore, data.meta.password);
+
+    const erc2771Forwarder = new AssetType(`${assetArtifact.chainId.namespace}:${assetArtifact.chainId.reference}/erc2771:${data.meta.forwarder}`);
+    const forwarderAPI = chain.contract(erc2771Forwarder).getAPI(data.options?.wallet) as unknown as Erc2771Api;
+
+    const signingDomain = {name: data.meta.erc712.name, version: data.meta.erc712.version};
+    try {
+
+      this.logger.info(`${assetArtifact.toString()} via ERC2771-Forwarder ${erc2771Forwarder.toString()}: ${data.function_name}(${data.args}). [erc721: ${JSON.stringify(signingDomain)}]`)
+      return await forwarderAPI.forwardRequest(invokedContract, signerWallet, data.function_name, data.args, signingDomain );
+    } catch(error: any) {
+      // convert into http status errors
+      this.logger.warn(error.message);
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async verifyKeystore(data: VerifyKeystoreDto): Promise<Object> {
+    const wallet= await this.walletFromKeystore(data.keystore, data.password);
+    return {"hello": "world"};
+  }
+
+  async walletFromKeystore(data: JsonKeystoreDto, password: string): Promise<Wallet> {
+    try {
+      // Decrypt the keystore and create a wallet
+      const wallet = await Wallet.fromEncryptedJson(JSON.stringify(data), password);
+      return wallet as Wallet;
+    } catch (error) {
+      console.error("Failed to load wallet:", error);
+    }
   }
   
   
