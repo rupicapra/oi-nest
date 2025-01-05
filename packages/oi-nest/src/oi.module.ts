@@ -2,8 +2,6 @@ import { Module, Global } from '@nestjs/common';
 import { OiController } from './oi.controller';
 import { OiService } from './oi.service';
 
-import "./omeiTrading"
-
 @Global()
 @Module({
   controllers: [OiController], // OiController should be listed here
