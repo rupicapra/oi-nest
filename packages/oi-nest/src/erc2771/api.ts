@@ -33,6 +33,8 @@ export class Erc2771Api extends EthereumContractAPI {
       }
     }
 
+    // Simulation was successful, now actually execute
+
     const request = {
         from: signer.address,
         to: await invokedContract.getAddress(),
@@ -42,26 +44,6 @@ export class Erc2771Api extends EthereumContractAPI {
         data: encodedFunctionCall,
         deadline: 1860058393 // FIXME
     };
-
-    // Simulate the transaction using callStatic
-    try {
-      await (await this.getRawContract()).callStatic.execute({
-        from: request.from,
-        to: request.to,
-        value: request.value,
-        gas: request.gas,
-        deadline: request.deadline,
-        data: request.data,
-        signature: '0x', // Provide a dummy signature for simulation
-      });
-    } catch (error: any) {
-      if (error.info?.errorArgs?.length > 0) {
-        const revertReason = error.info.errorArgs[0];
-        throw new Error(`Transaction reverted with reason: ${revertReason}`);
-      } else {
-        throw new Error(`Simulation failed: ${error.message}`);
-      }
-    }
 
 
     // Sign the request using EIP-712
