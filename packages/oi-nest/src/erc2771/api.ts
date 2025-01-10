@@ -1,11 +1,60 @@
 import {  EthereumContractAPI } from '@openibex/ethereum'
-import { Contract, Wallet } from 'ethers';
+import { Contract, Wallet, FunctionFragment, AbiCoder } from 'ethers';
 
 /**
  * API of the ERC20 contract
  */
 export class Erc2771Api extends EthereumContractAPI {
-  async forwardRequest(invokedContract: Contract, signer: Wallet, functionName: string, functionData, eip712: {name: string, version: string}): Promise<Object> {
+
+  // FIXME this is widely duplicate with EthereumContractAPI prepareCall 
+  // So de-duplicate this, especially since prepareCall is in the base class !!!!
+
+
+  public async doPrepCall(actualContract: Contract, functionName: string, argsArray: string[]): Promise<{ args: any[], fragment: FunctionFragment }> {
+    const fragments = actualContract.interface.fragments;
+  
+    // Find the corresponding FunctionFragment
+    let myFragment: FunctionFragment | undefined = undefined;
+    for (const f of fragments) {
+      if (!FunctionFragment.isFunction(f)) {
+        continue;
+      }
+      if ((f as FunctionFragment).name === functionName) {
+        myFragment = f as FunctionFragment;
+      }
+    }
+  
+    if (myFragment === undefined) {
+      throw new Error(`Cannot find ABI-definition of function ${functionName}`);
+    }
+  
+    // Convert the arguments to the correct types using ABI coder
+    const abiCoder = new AbiCoder();
+    const convertedArgs = argsArray.map((arg, index) => {
+      const inputType = myFragment!.inputs[index].type;
+  
+      // Ignore arguments wrapped in '...'
+      if (arg.startsWith("'") && arg.endsWith("'")) {
+        return arg.slice(1, -1); // Strip the quotes and use as-is
+      }
+  
+      // Parse JSON objects
+      try {
+        if (arg.startsWith('{') && arg.endsWith('}')) {
+          return JSON.parse(arg); // JSONs are usually structs - keep them.
+        }
+      } catch {
+        // If JSON parsing fails, fall back to treating as a string/number        
+      }
+  
+      // Treat as a string or number
+      return abiCoder.decode([inputType], abiCoder.encode([inputType], [arg]))[0];
+    });
+  
+    return { args: convertedArgs, fragment: myFragment };
+  }
+
+  async forwardRequest(invokedContract: Contract, signer: Wallet, functionName: string, functionData: any[], eip712: {name: string, version: string}): Promise<Object> {
 
     const functionFragment = invokedContract.interface.getFunction(functionName);
     const isView = functionFragment.stateMutability === "view" || functionFragment.stateMutability === "pure";
@@ -19,11 +68,13 @@ export class Erc2771Api extends EthereumContractAPI {
 
     // E.g. for OmeiTradingContract
     // We could use functionName = "setDefaultTotalOfferedEnergyLimit", functionData = [123456n]
-    const encodedFunctionCall = invokedContract.interface.encodeFunctionData(functionName, functionData);
+
+    const preparedCallData = await this.doPrepCall(invokedContract, functionName, functionData);
+    const encodedFunctionCall = invokedContract.interface.encodeFunctionData(functionName, preparedCallData.args);
 
     // Pre-Flight check!
     try {
-      await invokedContract[functionName].staticCall(...functionData, { from: signer.address });
+      await invokedContract[functionName].staticCall(...preparedCallData.args, { from: signer.address });
     } catch (error: any) {
       if(error.reason) {
         throw new Error(`Transaction reverted with reason: ${error.reason}`)
