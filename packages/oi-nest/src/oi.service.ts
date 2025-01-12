@@ -274,7 +274,7 @@ export class OiService implements OnModuleInit {
 
       this.logger.info(`${assetArtifact.toString()} via ERC2771-Forwarder ${erc2771Forwarder.toString()}: ${data.function_name}(${data.args}). [erc721: ${JSON.stringify(signingDomain)}]`)
       const receipt = await forwarderAPI.forwardRequest(invokedContract, signerWallet, data.function_name, data.args, signingDomain );
-      this.logger.info(`Successfully executed: ${JSON.stringify(receipt)}`);
+      this.logger.info(`Successfully executed: ${JSONbig.stringify(receipt)}`);
       return receipt;
     } catch(error: any) {
       // convert into http status errors

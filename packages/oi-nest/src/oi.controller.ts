@@ -1,4 +1,4 @@
-import { Body, Controller, forwardRef, Get, Inject, Post, } from '@nestjs/common';
+import { Body, Controller, forwardRef, Get, Inject, Post, UseInterceptors, } from '@nestjs/common';
 import { ApiBody, ApiOperation } from '@nestjs/swagger';
 import { OiService } from './oi.service';
 import { ExecuteSmartContractDto } from './dto/execute-function.dto';
@@ -6,8 +6,10 @@ import { REQUEST } from '@nestjs/core';
 import { GenerateKeystoreDto } from './dto/generate-keystore.dto';
 import { ExecuteMetaDto } from './dto/execute-meta.dto';
 import { VerifyKeystoreDto } from './dto/verify-keystore.dto';
+import { BigIntSerializerInterceptor } from './BigIntSerializerInterceptor';
 
 @Controller('oi')
+@UseInterceptors(BigIntSerializerInterceptor)
 export class OiController {
   constructor(@Inject(forwardRef(() => OiService)) private readonly oiService: OiService,
     @Inject(REQUEST) private readonly request: Request
