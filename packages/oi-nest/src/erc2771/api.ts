@@ -59,12 +59,8 @@ export class Erc2771Api extends EthereumContractAPI {
     const functionFragment = invokedContract.interface.getFunction(functionName);
     const isView = functionFragment.stateMutability === "view" || functionFragment.stateMutability === "pure";
 
-    if (isView) {
-        throw Error("Views cannot be executed, invoke the contract directly via invokedContract.connect(theSigner).functionName(functionData)");
-    }
-
-    // Construct the meta-transaction request
-    const nonce = await (await this.getRawContract())['nonces'](signer.address);
+    
+    
 
     // E.g. for OmeiTradingContract
     // We could use functionName = "setDefaultTotalOfferedEnergyLimit", functionData = [123456n]
@@ -72,9 +68,12 @@ export class Erc2771Api extends EthereumContractAPI {
     const preparedCallData = await this.doPrepCall(invokedContract, functionName, functionData);
     const encodedFunctionCall = invokedContract.interface.encodeFunctionData(functionName, preparedCallData.args);
 
-    // Pre-Flight check!
+    // Pre-Flight check OR view execution...!
     try {
-      await invokedContract[functionName].staticCall(...preparedCallData.args, { from: signer.address });
+      const response = await invokedContract[functionName].staticCall(...preparedCallData.args, { from: signer.address });
+      if(isView) {
+        return response;
+      }
     } catch (error: any) {
       if(error.reason) {
         throw new Error(`Transaction reverted with reason: ${error.reason}`)
@@ -83,6 +82,10 @@ export class Erc2771Api extends EthereumContractAPI {
         throw new Error(`Simulation failed: ${error.message}`);
       }
     }
+
+    // Construct the meta-transaction request
+    const nonce = await (await this.getRawContract())['nonces'](signer.address);
+
 
     // Simulation was successful, now actually execute
 
