@@ -54,13 +54,48 @@ export class Erc2771Api extends EthereumContractAPI {
     return { args: convertedArgs, fragment: myFragment };
   }
 
+  /**
+ * Decodes a Result object based on the provided ABI components.
+ *
+ * @param {Array} result - The ethers.js Result array to decode.
+ * @param {Array} components - The ABI components describing the structure.
+ * @returns {Object} Decoded object with field names.
+ */
+ private decodeResultFromAbi(result, components) {
+  if (!Array.isArray(components)) {
+      throw new Error("ABI components must be an array.");
+  }
+
+  const decoded = {};
+
+  components.forEach((component, index) => {
+      const { name, type, components: nestedComponents } = component;
+
+      if (!name) {
+          throw new Error(`Missing "name" field in ABI component: ${JSON.stringify(component)}`);
+      }
+
+      if (type === "tuple" && nestedComponents) {
+          // Recursively decode nested tuples
+          decoded[name] = this.decodeResultFromAbi(result[index], nestedComponents);
+      } else if (type.endsWith("[]")) {
+          // Handle arrays
+          decoded[name] = result[index].map((item) =>
+              nestedComponents ? this.decodeResultFromAbi(item, nestedComponents) : item
+          );
+      } else {
+          // Primitive type
+          decoded[name] = result[index];
+      }
+  });
+
+  return decoded;
+}
+
   async forwardRequest(invokedContract: Contract, signer: Wallet, functionName: string, functionData: any[], eip712: {name: string, version: string}): Promise<Object> {
 
     const functionFragment = invokedContract.interface.getFunction(functionName);
     const isView = functionFragment.stateMutability === "view" || functionFragment.stateMutability === "pure";
-
-    
-    
 
     // E.g. for OmeiTradingContract
     // We could use functionName = "setDefaultTotalOfferedEnergyLimit", functionData = [123456n]
@@ -72,7 +107,8 @@ export class Erc2771Api extends EthereumContractAPI {
     try {
       const response = await invokedContract[functionName].staticCall(...preparedCallData.args, { from: signer.address });
       if(isView) {
-        return response;
+        // TODO this only supports functions which return one value
+        return this.decodeResultFromAbi(response, functionFragment.outputs[0].components);
       }
     } catch (error: any) {
       if(error.reason) {
