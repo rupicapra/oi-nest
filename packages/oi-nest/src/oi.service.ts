@@ -253,7 +253,7 @@ export class OiService implements OnModuleInit {
     
     const returnValue = await api.execute(data.function_name, data.args)
     this.logger.info(`Calling function '${data.function_name}' returns ${returnValue}`);
-    return JSONbig.stringify({"return": returnValue});
+    return returnValue;
   }
 
   async executeMeta(data: ExecuteMetaDto): Promise<Object> {

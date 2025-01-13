@@ -55,7 +55,7 @@ export class Erc2771Api extends EthereumContractAPI {
   }
 
 
-  async forwardRequest(invokedContract: Contract, signer: Wallet, functionName: string, functionData: any[], eip712: {name: string, version: string}): Promise<Object> {
+  async forwardRequest(invokedContract: Contract, signer: Wallet, functionName: string, functionData: any[], eip712: {name: string, version: string}): Promise<ExecuteResult> {
 
     const functionFragment = invokedContract.interface.getFunction(functionName);
     const isView = functionFragment.stateMutability === "view" || functionFragment.stateMutability === "pure";
