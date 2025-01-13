@@ -10,7 +10,7 @@ export class Erc2771Api extends EthereumContractAPI {
   // So de-duplicate this, especially since prepareCall is in the base class !!!!
 
 
-  public async doPrepCall(actualContract: Contract, functionName: string, argsArray: string[]): Promise<{ args: any[], fragment: FunctionFragment }> {
+  public async removeMePrepCall(actualContract: Contract, functionName: string, argsArray: string[]): Promise<{ args: any[], fragment: FunctionFragment }> {
     const fragments = actualContract.interface.fragments;
   
     // Find the corresponding FunctionFragment
@@ -54,43 +54,6 @@ export class Erc2771Api extends EthereumContractAPI {
     return { args: convertedArgs, fragment: myFragment };
   }
 
-  /**
- * Decodes a Result object based on the provided ABI components.
- *
- * @param {Array} result - The ethers.js Result array to decode.
- * @param {Array} components - The ABI components describing the structure.
- * @returns {Object} Decoded object with field names.
- */
- private decodeResultFromAbi(result, components) {
-  if (!Array.isArray(components)) {
-      throw new Error("ABI components must be an array.");
-  }
-
-  const decoded = {};
-
-  components.forEach((component, index) => {
-      const { name, type, components: nestedComponents } = component;
-
-      if (!name) {
-          throw new Error(`Missing "name" field in ABI component: ${JSON.stringify(component)}`);
-      }
-
-      if (type === "tuple" && nestedComponents) {
-          // Recursively decode nested tuples
-          decoded[name] = this.decodeResultFromAbi(result[index], nestedComponents);
-      } else if (type.endsWith("[]")) {
-          // Handle arrays
-          decoded[name] = result[index].map((item) =>
-              nestedComponents ? this.decodeResultFromAbi(item, nestedComponents) : item
-          );
-      } else {
-          // Primitive type
-          decoded[name] = result[index];
-      }
-  });
-
-  return decoded;
-}
 
   async forwardRequest(invokedContract: Contract, signer: Wallet, functionName: string, functionData: any[], eip712: {name: string, version: string}): Promise<Object> {
 
@@ -100,7 +63,7 @@ export class Erc2771Api extends EthereumContractAPI {
     // E.g. for OmeiTradingContract
     // We could use functionName = "setDefaultTotalOfferedEnergyLimit", functionData = [123456n]
 
-    const preparedCallData = await this.doPrepCall(invokedContract, functionName, functionData);
+    const preparedCallData = await this.removeMePrepCall(invokedContract, functionName, functionData);
     const encodedFunctionCall = invokedContract.interface.encodeFunctionData(functionName, preparedCallData.args);
 
     // Pre-Flight check OR view execution...!
@@ -108,7 +71,7 @@ export class Erc2771Api extends EthereumContractAPI {
       const response = await invokedContract[functionName].staticCall(...preparedCallData.args, { from: signer.address });
       if(isView) {
         // TODO this only supports functions which return one value
-        return this.decodeResultFromAbi(response, functionFragment.outputs[0].components);
+        return this.decodeResultFromAbi(response, functionFragment);
       }
     } catch (error: any) {
       if(error.reason) {

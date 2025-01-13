@@ -8,7 +8,7 @@ import { ProxyLogger } from './ProxyLogger';
 import { promises as fsPromises, readFileSync, writeFileSync } from 'fs';
 import { AssetType} from 'caip';
 import JSONbig from 'json-bigint';
-import {OiChain} from '@openibex/chain';
+import {OiChain, OiContractAPI} from '@openibex/chain';
 
 // Each plugin that should be loaded needs to be imported here EXPLICITELY
 // This is paramount for the plugins-system
@@ -251,7 +251,7 @@ export class OiService implements OnModuleInit {
 
     this.logger.info(`API created with ${data.options.wallet ? `wallet ${data.options.wallet}`: 'no wallet'}.`);
     
-    const returnValue = await api.execute(data.function_name, data.args.join(','))
+    const returnValue = await api.execute(data.function_name, data.args)
     this.logger.info(`Calling function '${data.function_name}' returns ${returnValue}`);
     return JSONbig.stringify({"return": returnValue});
   }
@@ -296,6 +296,15 @@ export class OiService implements OnModuleInit {
     } catch (error) {
       console.error("Failed to load wallet:", error);
     }
+  }
+
+  public getAPI(artifact: string, walletName: string | undefined = undefined): OiContractAPI {
+    const assetArtifact = new AssetType(artifact);
+
+    const chain: OiChain = this.core.getService('openibex.chain', 'chain') as unknown as OiChain;
+    // TODO change as soon as we have instant-keystores supported in OpenIbex
+    const api = chain.contract(assetArtifact).getAPI(walletName);
+    return api;
   }
   
   
