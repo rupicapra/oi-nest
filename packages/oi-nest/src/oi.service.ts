@@ -18,11 +18,12 @@ import './erc2771';
 
 import { ExecuteSmartContractDto } from './dto/execute-function.dto';
 import { GenerateKeystoreDto } from './dto/generate-keystore.dto';
-import { HDNodeWallet, Wallet } from 'ethers';
+import { Contract, HDNodeWallet, Wallet } from 'ethers';
 import { ExecuteMetaDto } from './dto/execute-meta.dto';
 import { VerifyKeystoreDto } from './dto/verify-keystore.dto';
 import { JsonKeystoreDto } from './dto/jsonKeystore.dto';
 import { Erc2771Api } from './erc2771/api';
+import { ConnectDto } from './dto/connect.dto';
 
 // setup-directory needs to contain at least a config.yaml
 // TODO OI_BOOTSTRAP ... path do setup directory
@@ -36,6 +37,7 @@ export class OiService implements OnModuleInit {
   private core: OiCore;
   private data_dir: string = path.resolve(process.env.OI_DATA_DIR || './oi_data/');
   private config_path: string = path.resolve(process.env.OI_CONFIG_FILE || path.join(this.data_dir, 'config.yaml'));
+  
 
   private _getConfigPath(): string {
     return this.config_path;
@@ -120,6 +122,8 @@ export class OiService implements OnModuleInit {
     // If both checks pass
     return true;
   }
+
+
 
   async startup(): Promise<void>  {
     this.logger.info(`Startup from at ${this._getConfigPath()}...`);
@@ -256,6 +260,7 @@ export class OiService implements OnModuleInit {
     return returnValue;
   }
 
+
   async executeMeta(data: ExecuteMetaDto): Promise<Object> {
 
     const assetArtifact = new AssetType(data.artifact);
@@ -298,6 +303,26 @@ export class OiService implements OnModuleInit {
     }
   }
 
+  async startConnector(data: ConnectDto): Promise<Object> {
+    const assetArtifact = new AssetType(data.artifact);
+
+    const params = {
+      index: false, // TODO support this as parameter!
+      startBlock: data.startBlock ? data.startBlock : 0
+    }
+
+    const chain: OiChain = this.core.getService('openibex.chain', 'chain') as unknown as OiChain;
+    const connector = chain.contract(assetArtifact).getConnector(params);
+
+    this.logger.info(`Connector for ${data.artifact} initializing: Creating datasets and initializing connections.`);
+    await connector.init();
+    this.logger.info('Connector for ${data.artifact} starting');
+    await connector.start();
+    this.logger.info(`Connector ${data.artifact} started and processing.`);
+
+    return {"artifact": data.artifact, "status": "running"};
+  }
+
   public getAPI(artifact: string, walletName: string | undefined = undefined): OiContractAPI {
     const assetArtifact = new AssetType(artifact);
 
@@ -306,7 +331,15 @@ export class OiService implements OnModuleInit {
     const api = chain.contract(assetArtifact).getAPI(walletName);
     return api;
   }
+
+
+  private async eventProxy(contract: Contract, event, record) {
+    console.log("event proxy :) ")
+    console.log(JSONbig.stringify(event));
+    console.log(JSONbig.stringify(record));
+    
+  }  
   
-  
+
 
 }

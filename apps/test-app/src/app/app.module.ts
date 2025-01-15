@@ -1,7 +1,7 @@
 import { Module, Global, Logger } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { OiModule } from '@rupicapra/oi-nest';
+import { OiModule, OiService } from '@rupicapra/oi-nest';
 import * as winston from 'winston';
 import { WinstonModule } from 'nest-winston';
 
@@ -11,6 +11,6 @@ import { WinstonModule } from 'nest-winston';
     OiModule,
     ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, OiService],
 })
 export class AppModule {}
