@@ -1,4 +1,4 @@
-import { Body, Controller, forwardRef, Get, Inject, Post, UseInterceptors, } from '@nestjs/common';
+import { Body, Controller, forwardRef, Get, Inject, NotImplementedException, Post, UseInterceptors, } from '@nestjs/common';
 import { ApiBody, ApiOperation } from '@nestjs/swagger';
 import { OiService } from './oi.service';
 import { ExecuteSmartContractDto } from './dto/execute-function.dto';
@@ -7,6 +7,7 @@ import { GenerateKeystoreDto } from './dto/generate-keystore.dto';
 import { ExecuteMetaDto } from './dto/execute-meta.dto';
 import { VerifyKeystoreDto } from './dto/verify-keystore.dto';
 import { BigIntSerializerInterceptor } from './BigIntSerializerInterceptor';
+import { ConnectDto } from './dto/connect.dto';
 
 @Controller('oi')
 @UseInterceptors(BigIntSerializerInterceptor)
@@ -71,5 +72,20 @@ export class OiController {
 
     const data = this.request.body as unknown as VerifyKeystoreDto;    
     return await this.oiService.verifyKeystore(data);  
+  }
+
+  @Post('connect')
+  @ApiBody({
+    type: () => ConnectDto   
+  })
+  @ApiOperation({
+    summary: 'Initializes and starts a connector for Blockchain-Event handling. Typical connectors have callback functions - make sure these are set proper in code before using this endpoint. Callbacks may be changed during runtime.',
+    description: ""
+  })
+  async subscribeEvents( 
+  ) {
+    throw new NotImplementedException("Not implemented yet, use OiService.startConnector() from your code. This requires OpenIbex to support stopping / desubscribing from events and a proper threading/worker infrastructure")
+    const data = this.request.body as unknown as ConnectDto
+    return await this.oiService.startConnector(data);  
   }
 }
