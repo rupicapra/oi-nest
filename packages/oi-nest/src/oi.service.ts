@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { getOiCore, initApp, OiConfig, OiCore } from '@openibex/core';
 import semver from 'semver';
 import * as path from 'path';
@@ -8,7 +8,7 @@ import { ProxyLogger } from './ProxyLogger';
 import { promises as fsPromises, readFileSync, writeFileSync } from 'fs';
 import { AssetType} from 'caip';
 import JSONbig from 'json-bigint';
-import {OiChain, OiContractAPI} from '@openibex/chain';
+import {OiChain, OiContractAPI, OiContractConnector} from '@openibex/chain';
 
 // Each plugin that should be loaded needs to be imported here EXPLICITELY
 // This is paramount for the plugins-system
@@ -38,6 +38,7 @@ export class OiService implements OnModuleInit {
   private data_dir: string = path.resolve(process.env.OI_DATA_DIR || './oi_data/');
   private config_path: string = path.resolve(process.env.OI_CONFIG_FILE || path.join(this.data_dir, 'config.yaml'));
   
+  private connectors = new Map<string, OiContractConnector>;
 
   private _getConfigPath(): string {
     return this.config_path;
@@ -303,8 +304,25 @@ export class OiService implements OnModuleInit {
     }
   }
 
+  async getConnector(artifact: string): Promise<OiContractConnector> {
+
+    if(!this.connectors.has(artifact.toLowerCase())) {
+      throw new NotFoundException(`No connector for ${artifact}`);
+    }
+
+    return this.connectors.get(artifact.toLowerCase());
+  }
+
   async startConnector(data: ConnectDto): Promise<Object> {
+
+    if(this.connectors.has(data.artifact.toLowerCase())) {
+      this.logger.warn(`Ignore startConnector for ${data.artifact}: already running.`);
+      return;
+    }
+
+
     const assetArtifact = new AssetType(data.artifact);
+
 
     const params = {
       index: false, // TODO support this as parameter!
@@ -316,9 +334,12 @@ export class OiService implements OnModuleInit {
 
     this.logger.info(`Connector for ${data.artifact} initializing: Creating datasets and initializing connections.`);
     await connector.init();
-    this.logger.info('Connector for ${data.artifact} starting');
+    this.logger.info(`Connector for ${data.artifact} starting`);
     await connector.start();
     this.logger.info(`Connector ${data.artifact} started and processing.`);
+
+    // Store for later use
+    this.connectors.set(data.artifact.toLocaleLowerCase(), connector);
 
     return {"artifact": data.artifact, "status": "running"};
   }
@@ -330,16 +351,7 @@ export class OiService implements OnModuleInit {
     // TODO change as soon as we have instant-keystores supported in OpenIbex
     const api = chain.contract(assetArtifact).getAPI(walletName);
     return api;
-  }
-
-
-  private async eventProxy(contract: Contract, event, record) {
-    console.log("event proxy :) ")
-    console.log(JSONbig.stringify(event));
-    console.log(JSONbig.stringify(record));
-    
-  }  
-  
+  } 
 
 
 }
